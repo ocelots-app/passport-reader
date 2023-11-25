@@ -5,7 +5,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-MIN_IOS_OVERRIDE = '13.0'
+MIN_IOS_OVERRIDE = '14.0'
 if Gem::Version.new(MIN_IOS_OVERRIDE) > Gem::Version.new(min_ios_version_supported)
     min_ios_version_supported = MIN_IOS_OVERRIDE
 end
@@ -45,10 +45,13 @@ target 'PassportReader' do
     #
     # Note that if you have use_frameworks! enabled, Flipper will not work and
     # you should disable the next line.
-    :flipper_configuration => flipper_config,
+    # :flipper_configuration => flipper_config,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  use_frameworks!
+  pod 'NFCPassportReader', git:'https://github.com/AndyQ/NFCPassportReader.git'  
 
   target 'PassportReaderTests' do
     inherit! :complete
