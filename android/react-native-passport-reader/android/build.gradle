@@ -38,7 +38,6 @@ dependencies {
     implementation 'edu.ucar:jj2000:5.2'
     implementation 'com.github.mhshams:jnbis:1.1.0'
     implementation 'com.facebook.react:react-native:+'
-    implementation 'com.google.code.gson:gson:2.8.9'
 }
 
 

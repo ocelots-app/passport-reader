@@ -122,8 +122,11 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
             opts.getString(PARAM_DOB),
             opts.getString(PARAM_DOE)
     );
-
-    new ReadTask(IsoDep.get(tag), bacKey).execute();
+    
+    var nfc = IsoDep.get(tag);
+    // Set the timeout to prevent Tag lost errors
+    nfc.setTimeout(10000);
+    new ReadTask(nfc, bacKey).execute();
   }
 
   @Override

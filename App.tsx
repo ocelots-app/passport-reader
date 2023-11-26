@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-catch-shadow */
 import React, {useState} from 'react';
 import {
@@ -9,6 +10,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useColorScheme,
   View,
@@ -23,13 +25,21 @@ import {
 // @ts-ignore
 import PassportReader from './android/react-native-passport-reader';
 
-async function getDataFromPassport() {
+async function getDataFromPassport({
+  documentNumber,
+  dateOfBirth,
+  dateOfExpiry,
+}: {
+  documentNumber: string;
+  dateOfBirth: string;
+  dateOfExpiry: string;
+}) {
   try {
     if (Platform.OS === 'ios') {
       scanPassport({
-        birthDate: '',
-        expiryDate: '',
-        passportNumber: '',
+        birthDate: dateOfBirth,
+        expiryDate: dateOfExpiry,
+        passportNumber: documentNumber,
         useNewVerificationMethod: true,
       })
         .then((result: NFCPassportModel | {error: string}) => {
@@ -44,9 +54,9 @@ async function getDataFromPassport() {
         });
     } else if (Platform.OS === 'android') {
       const res = await PassportReader.scan({
-        documentNumber: DEFAULT_PNUMBER,
-        dateOfBirth: DEFAULT_DOB,
-        dateOfExpiry: DEFAULT_DOE,
+        documentNumber,
+        dateOfBirth,
+        dateOfExpiry,
       });
 
       return res;
@@ -66,14 +76,28 @@ function App(): JSX.Element {
     width: 0,
     height: 0,
   });
+  const [passportMRZ, setPassportMRZ] = useState({
+    documentNumber: '',
+    dateOfBirth: '',
+    dateOfExpiry: '',
+  });
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string>();
 
   const onReadPassport = async () => {
     setScanning(true);
     setError('');
+    setPhoto({
+      base64: '',
+      width: 0,
+      height: 0,
+    });
     try {
-      const {photo} = await getDataFromPassport();
+      const {photo} = await getDataFromPassport({
+        documentNumber: passportMRZ.documentNumber || DEFAULT_PNUMBER,
+        dateOfBirth: passportMRZ.dateOfBirth || DEFAULT_DOB,
+        dateOfExpiry: passportMRZ.dateOfExpiry || DEFAULT_DOE,
+      });
       setPhoto(photo);
     } catch (error: any) {
       setError(JSON.stringify(error));
@@ -84,6 +108,11 @@ function App(): JSX.Element {
   const onCancelScan = () => {
     PassportReader.cancel();
     setScanning(false);
+    setPhoto({
+      base64: '',
+      width: 0,
+      height: 0,
+    });
   };
 
   return (
@@ -95,7 +124,35 @@ function App(): JSX.Element {
           width: '100%',
           justifyContent: 'center',
           alignItems: 'center',
+          gap: 20,
         }}>
+        <TextInput
+          style={styles.textInput}
+          placeholderTextColor="black"
+          placeholder="Document Number"
+          value={passportMRZ.documentNumber}
+          onChangeText={text => {
+            setPassportMRZ({...passportMRZ, documentNumber: text});
+          }}
+        />
+        <TextInput
+          style={styles.textInput}
+          placeholderTextColor="black"
+          placeholder="Date of Birth (yyMMdd)"
+          value={passportMRZ.dateOfBirth}
+          onChangeText={text => {
+            setPassportMRZ({...passportMRZ, dateOfBirth: text});
+          }}
+        />
+        <TextInput
+          style={styles.textInput}
+          placeholderTextColor="black"
+          placeholder="Date of Expiry (yyMMdd)"
+          value={passportMRZ.dateOfExpiry}
+          onChangeText={text => {
+            setPassportMRZ({...passportMRZ, dateOfExpiry: text});
+          }}
+        />
         {!scanning && (
           <TouchableOpacity
             style={{
@@ -134,21 +191,41 @@ function App(): JSX.Element {
         )}
         {error && <Text>{error}</Text>}
         {photo && photo.base64 && (
-          <Image
-            source={{
-              uri: photo.base64,
-            }}
-            style={{
-              width: photo.width,
-              height: photo.height,
-            }}
-          />
+          <>
+            <Image
+              source={{
+                uri: photo.base64,
+              }}
+              style={{
+                width: photo.width,
+                height: photo.height,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+              }}>
+              Passport read with success!
+            </Text>
+          </>
         )}
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  textInput: {
+    width: '80%',
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 20,
+    fontSize: 20,
+    backgroundColor: 'white',
+    color: 'black',
+  },
+});
 
 export default App;
