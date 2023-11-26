@@ -125,7 +125,7 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
     
     var nfc = IsoDep.get(tag);
     // Set the timeout to prevent Tag lost errors
-    nfc.setTimeout(10000);
+    nfc.setTimeout(1000 * 60);
     new ReadTask(nfc, bacKey).execute();
   }
 

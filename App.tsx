@@ -132,7 +132,7 @@ function App(): JSX.Element {
           placeholder="Document Number"
           value={passportMRZ.documentNumber}
           onChangeText={text => {
-            setPassportMRZ({...passportMRZ, documentNumber: text});
+            setPassportMRZ(prev => ({...prev, documentNumber: text}));
           }}
         />
         <TextInput
@@ -141,7 +141,7 @@ function App(): JSX.Element {
           placeholder="Date of Birth (yyMMdd)"
           value={passportMRZ.dateOfBirth}
           onChangeText={text => {
-            setPassportMRZ({...passportMRZ, dateOfBirth: text});
+            setPassportMRZ(prev => ({...prev, dateOfBirth: text}));
           }}
         />
         <TextInput
@@ -150,7 +150,7 @@ function App(): JSX.Element {
           placeholder="Date of Expiry (yyMMdd)"
           value={passportMRZ.dateOfExpiry}
           onChangeText={text => {
-            setPassportMRZ({...passportMRZ, dateOfExpiry: text});
+            setPassportMRZ(prev => ({...prev, dateOfExpiry: text}));
           }}
         />
         {!scanning && (
@@ -210,6 +210,7 @@ function App(): JSX.Element {
             </Text>
           </>
         )}
+        {scanning && <Text>Scanning...</Text>}
       </View>
     </SafeAreaView>
   );
