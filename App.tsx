@@ -1,7 +1,8 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-catch-shadow */
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
+  Alert,
   Button,
   Image,
   Platform,
@@ -24,6 +25,9 @@ import {
 } from '@better-network/react-native-nfc-passport-reader';
 // @ts-ignore
 import PassportReader from './android/react-native-passport-reader';
+import WebView from 'react-native-webview';
+import {useWebViewMessage} from 'react-native-react-bridge';
+import webApp from './WebApp';
 
 async function getDataFromPassport({
   documentNumber,
@@ -84,6 +88,13 @@ function App(): JSX.Element {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string>();
 
+  const {ref, onMessage, emit} = useWebViewMessage(message => {
+    if (message.type === 'proof') {
+      //emit({type: 'success', data: 'succeeded!'});
+      console.log(message.data);
+    }
+  });
+
   const onReadPassport = async () => {
     setScanning(true);
     setError('');
@@ -118,6 +129,14 @@ function App(): JSX.Element {
   return (
     <SafeAreaView style={{}}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
+      <WebView
+        originWhitelist={['*']}
+        source={{html: webApp}}
+        onMessage={(event: any) => {
+          console.log(event.nativeEvent.data);
+          //Alert.alert(event.nativeEvent.data);
+        }}
+      />
       <View
         style={{
           height: '100%',

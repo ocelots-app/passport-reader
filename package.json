@@ -11,10 +11,15 @@
   },
   "dependencies": {
     "@better-network/react-native-nfc-passport-reader": "^0.2.2",
+    "fs-extra": "^11.2.0",
+    "o1js": "^0.14.2",
     "react": "18.2.0",
+    "react-dom": "^18.2.0",
     "react-native": "0.72.7",
     "react-native-dotenv": "^3.4.9",
-    "react-native-passport-reader": "^1.0.3"
+    "react-native-passport-reader": "^1.0.3",
+    "react-native-react-bridge": "^0.11.2",
+    "react-native-webview": "^13.6.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

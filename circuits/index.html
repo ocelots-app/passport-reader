@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      //import o1js from 'https://www.unpkg.com/o1js@0.14.2/dist/web/index.js';
+      /*function Prover() {
+        window.ReactNativeWebView.postMessage('creating prover');
+        const prover = ZkProgram({
+          name: 'Prover',
+          publicInput: Field,
+          methods: {
+            baseCase: {
+              privateInputs: [Field],
+              method(publicInput, factor) {
+                publicInput.mul(factor).assertEquals(256);
+              },
+            },
+          },
+        });
+        window.ReactNativeWebView.postMessage('prover created');
+        return prover;
+      }
+      async function runProver(publicInput, factor) {
+        const prover = Prover();
+        window.ReactNativeWebView.postMessage('compiling prover');
+        await prover.compile();
+        let res = await prover.baseCase(Field(publicInput), Field(factor));
+        console.log(res);
+        res.verify();
+        return res;
+      }*/
+      window.ReactNativeWebView.postMessage('running prover');
+      runProver(128, 2)
+        .then(res => {
+          window.ReactNativeWebView.postMessage(JSON.stringify(res));
+        })
+        .catch(err => {
+          window.ReactNativeWebView.postMessage(JSON.stringify(err));
+        });
+      window.ReactNativeWebView.postMessage('started prover');
+    </script>
+  </head>
+  <body style="background-color: white">
+    <h1 style="color: black">Circuits</h1>
+  </body>
+</html>
