@@ -48,6 +48,7 @@ import org.jmrtd.lds.COMFile;
 import org.jmrtd.lds.CardAccessFile;
 import org.jmrtd.lds.DG1File;
 import org.jmrtd.lds.DG2File;
+import org.jmrtd.lds.DG14File;
 import org.jmrtd.lds.FaceImageInfo;
 import org.jmrtd.lds.FaceInfo;
 import org.jmrtd.lds.LDS;
@@ -278,6 +279,7 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
     private SODFile sodFile;
     private DG1File dg1File;
     private DG2File dg2File;
+    private DG14File dg14File;
 
     private Bitmap bitmap;
 
@@ -299,8 +301,10 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
             PACEInfo paceInfo = paceInfos.iterator().next();
             service.doPACE(bacKey, paceInfo.getObjectIdentifier(), PACEInfo.toParameterSpec(paceInfo.getParameterId()));
             paceSucceeded = true;
+            Log.w(TAG, "PACE succeeded");
           } else {
             paceSucceeded = true;
+            Log.w(TAG, "PACE undefined");
           }
         } catch (Exception e) {
           Log.w(TAG, e);
@@ -326,6 +330,14 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         lds.add(PassportService.EF_SOD, sodIn, sodIn.getLength());
         sodFile = lds.getSODFile();
 
+        Log.w(TAG, "SODFile: " + sodFile.getDocSigningCertificate());
+
+        // Most likely will be SHA256withRSA
+        String signatureAlgorithm = sodFile.getDigestEncryptionAlgorithm();
+        var docSigningCertificate = sodFile.getDocSigningCertificate();
+        // Most likely will be SHA-256
+        String signerInfoDigestAlgorithm = sodFile.getSignerInfoDigestAlgorithm();
+
         CardFileInputStream dg1In = service.getInputStream(PassportService.EF_DG1);
         lds.add(PassportService.EF_DG1, dg1In, dg1In.getLength());
         dg1File = lds.getDG1File();
@@ -333,6 +345,10 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         CardFileInputStream dg2In = service.getInputStream(PassportService.EF_DG2);
         lds.add(PassportService.EF_DG2, dg2In, dg2In.getLength());
         dg2File = lds.getDG2File();
+
+        CardFileInputStream dg14In = service.getInputStream(PassportService.EF_DG14);
+        lds.add(PassportService.EF_DG14, dg14In, dg14In.getLength());
+        dg14File = lds.getDG14File();
 
         List<FaceImageInfo> allFaceImageInfos = new ArrayList<>();
         List<FaceInfo> faceInfos = dg2File.getFaceInfos();
