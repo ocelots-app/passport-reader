@@ -69,6 +69,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.security.cert.X509Certificate;
 
 public class RNPassportReaderModule extends ReactContextBaseJavaModule implements LifecycleEventListener, ActivityEventListener {
 
@@ -330,11 +331,11 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         lds.add(PassportService.EF_SOD, sodIn, sodIn.getLength());
         sodFile = lds.getSODFile();
 
-        Log.w(TAG, "SODFile: " + sodFile.getDocSigningCertificate());
+        X509Certificate docSigningCertificate = sodFile.getDocSigningCertificate();
+        Log.w(TAG, "SODFile: " + docSigningCertificate);
 
         // Most likely will be SHA256withRSA
         String signatureAlgorithm = sodFile.getDigestEncryptionAlgorithm();
-        var docSigningCertificate = sodFile.getDocSigningCertificate();
         // Most likely will be SHA-256
         String signerInfoDigestAlgorithm = sodFile.getSignerInfoDigestAlgorithm();
 
