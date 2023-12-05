@@ -37,6 +37,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Callback;
 
 import net.sf.scuba.smartcards.CardFileInputStream;
 import net.sf.scuba.smartcards.CardService;
@@ -62,6 +63,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PublicKey;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,6 +72,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
+
+import com.google.gson.Gson;
 
 public class RNPassportReaderModule extends ReactContextBaseJavaModule implements LifecycleEventListener, ActivityEventListener {
 
@@ -103,8 +108,11 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
 
     reactContext.addLifecycleEventListener(this);
     reactContext.addActivityEventListener(this);
-
     this.reactContext = reactContext;
+  }
+
+  static {
+    System.loadLibrary("ark_circom_passport");
   }
 
   @Override
@@ -394,6 +402,32 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
 
       MRZInfo mrzInfo = dg1File.getMRZInfo();
 
+      Gson gson = new Gson();
+
+      WritableMap passport = Arguments.createMap();
+
+      try {
+        X509Certificate docSigningCertificate = sodFile.getDocSigningCertificate();
+
+        String signatureAlgorithm = docSigningCertificate.getSigAlgName();
+        passport.putString("signatureAlgorithm", signatureAlgorithm);
+        passport.putString("tbsCertificate", gson.toJson(docSigningCertificate.getTBSCertificate()));
+
+        PublicKey publicKey = docSigningCertificate.getPublicKey();
+        if(publicKey instanceof RSAPublicKey) { 
+          RSAPublicKey rsaPublicKey = (RSAPublicKey)publicKey;
+          passport.putString("modulus", rsaPublicKey.getModulus().toString());
+          passport.putString("exponent", rsaPublicKey.getPublicExponent().toString());
+        }
+      } catch (Exception e) {
+        Log.e(TAG, "error fetching the Document Signing Certificate: " + e);
+      }
+
+      passport.putString("mrz", mrzInfo.toString());
+      passport.putString("dataGroupHashes", gson.toJson(sodFile.getDataGroupHashes()));
+      passport.putString("eContent", gson.toJson(sodFile.getEContent()));
+      passport.putString("encryptedDigest", gson.toJson(sodFile.getEncryptedDigest()));
+
       int quality = 100;
       if (opts.hasKey("quality")) {
         quality = (int)(opts.getDouble("quality") * 100);
@@ -407,7 +441,7 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
 
       String firstName = mrzInfo.getSecondaryIdentifier().replace("<", "");
       String lastName = mrzInfo.getPrimaryIdentifier().replace("<", "");
-      WritableMap passport = Arguments.createMap();
+
       passport.putMap(KEY_PHOTO, photo);
       passport.putString(KEY_FIRST_NAME, firstName);
       passport.putString(KEY_LAST_NAME, lastName);
@@ -419,4 +453,63 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
       resetState();
     }
   }
+
+    //-------------functions related to calling rust lib----------------//
+
+    // Declare native method
+   public static native String callRustCode();
+
+    @ReactMethod
+    void callRustLib(Callback callback) {
+        // Call the Rust function
+        var resultFromRust = callRustCode();
+        
+        // Return the result to JavaScript through the callback
+        callback.invoke(null, resultFromRust);
+    }
+
+    public static native Integer proveRSAInRust();
+
+    @ReactMethod
+    void proveRust(Callback callback) {
+        // Call the Rust function
+        var resultFromProof = proveRSAInRust();
+        
+        // Return the result to JavaScript through the callback
+        callback.invoke(null, resultFromProof);
+    }
+    
+    public static native String provePassport(
+        List<String> mrz,
+        List<String> dataHashes,
+        List<String> eContentBytes,
+        List<String> signature,
+        List<String> pubkey
+    );
+
+    List<String> convertArrayListToStringList(ArrayList<Object> arrayList) {
+        var stringList = new ArrayList<String>();
+        for (var i = 0; i < arrayList.size(); i++) {
+            stringList.add(arrayList.get(i).toString());
+        }
+        return stringList;
+    }
+
+    @ReactMethod
+    void provePassport(ReadableMap inputs, Callback callback) {
+        Log.d(TAG, "inputsaaa: " + inputs.toString());
+        
+        var mrz = inputs.getArray("mrz") != null ? convertArrayListToStringList(inputs.getArray("mrz").toArrayList()) : new ArrayList<String>();
+        var data_hashes = inputs.getArray("dataHashes") != null ? convertArrayListToStringList(inputs.getArray("dataHashes").toArrayList()) : new ArrayList<String>();
+        var e_content_bytes = inputs.getArray("eContentBytes") != null ? convertArrayListToStringList(inputs.getArray("eContentBytes").toArrayList()) : new ArrayList<String>();
+        var signature = inputs.getArray("signature") != null ? convertArrayListToStringList(inputs.getArray("signature").toArrayList()) : new ArrayList<String>();
+        var pubkey = inputs.getArray("pubkey") != null ? convertArrayListToStringList(inputs.getArray("pubkey").toArrayList()) : new ArrayList<String>();
+        
+        var resultFromProof = provePassport(mrz, data_hashes, e_content_bytes, signature, pubkey);
+
+        Log.d(TAG, "resultFromProof: " + resultFromProof.toString());
+
+        // Return the result to JavaScript through the callback
+        callback.invoke(null, resultFromProof);
+    }
 }

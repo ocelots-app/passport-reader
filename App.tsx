@@ -24,6 +24,16 @@ import {
 } from '@better-network/react-native-nfc-passport-reader';
 // @ts-ignore
 import PassportReader from './android/react-native-passport-reader';
+import {PassportData} from './types';
+import {
+  bytesToBigDecimal,
+  dataHashesObjToArray,
+  formatAndConcatenateDataHashes,
+  formatMrz,
+  hash,
+  splitToWords,
+  toUnsignedByte,
+} from './utils';
 
 async function getDataFromPassport({
   documentNumber,
@@ -71,11 +81,6 @@ async function getDataFromPassport({
 }
 
 function App(): JSX.Element {
-  const [photo, setPhoto] = useState({
-    base64: '',
-    width: 0,
-    height: 0,
-  });
   const [passportMRZ, setPassportMRZ] = useState({
     documentNumber: '',
     dateOfBirth: '',
@@ -83,22 +88,35 @@ function App(): JSX.Element {
   });
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string>();
+  const [passportData, setPassportData] = useState<PassportData>();
+  const [generatingProof, setGeneratingProof] = useState(false);
+  const [proof, setProof] = useState<string>();
 
   const onReadPassport = async () => {
     setScanning(true);
     setError('');
-    setPhoto({
-      base64: '',
-      width: 0,
-      height: 0,
-    });
+    setPassportData(undefined);
     try {
-      const {photo} = await getDataFromPassport({
+      const res = await getDataFromPassport({
         documentNumber: passportMRZ.documentNumber || DEFAULT_PNUMBER,
         dateOfBirth: passportMRZ.dateOfBirth || DEFAULT_DOB,
         dateOfExpiry: passportMRZ.dateOfExpiry || DEFAULT_DOE,
       });
-      setPhoto(photo);
+      const formattedResult: PassportData = {
+        signatureAlgorithm: res.signatureAlgorithm,
+        publicKey: {
+          modulus: res.modulus,
+          exponent: res.exponent,
+        },
+        tbsCertificate: JSON.parse(res.tbsCertificate),
+        mrz: res.mrz.replace(/\n/g, ''),
+        dataGroupHashes: dataHashesObjToArray(JSON.parse(res.dataGroupHashes)),
+        eContent: JSON.parse(res.eContent),
+        encryptedDigest: JSON.parse(res.encryptedDigest),
+        photo: res.photo,
+      };
+      console.log(formattedResult);
+      setPassportData(formattedResult);
     } catch (error: any) {
       setError(JSON.stringify(error));
     }
@@ -108,10 +126,52 @@ function App(): JSX.Element {
   const onCancelScan = () => {
     PassportReader.cancel();
     setScanning(false);
-    setPhoto({
-      base64: '',
-      width: 0,
-      height: 0,
+    setPassportData(undefined);
+  };
+
+  const onProve = () => {
+    if (!passportData) {
+      return;
+    }
+    const formattedMrz = formatMrz(passportData.mrz);
+    const mrzHash = hash(formatMrz(passportData.mrz));
+    const concatenatedDataHashes = formatAndConcatenateDataHashes(
+      mrzHash,
+      passportData.dataGroupHashes,
+    );
+
+    const inputs = {
+      mrz: Array.from(formattedMrz).map(byte => String(byte)),
+      dataHashes: Array.from(concatenatedDataHashes.map(toUnsignedByte)).map(
+        byte => String(byte),
+      ),
+      eContentBytes: Array.from(passportData.eContent.map(toUnsignedByte)).map(
+        byte => String(byte),
+      ),
+      signature: splitToWords(
+        BigInt(bytesToBigDecimal(passportData.encryptedDigest)),
+        BigInt(64),
+        BigInt(32),
+      ),
+      pubkey: splitToWords(
+        BigInt(passportData.publicKey.modulus as string),
+        BigInt(64),
+        BigInt(32),
+      ),
+    };
+    setGeneratingProof(true);
+
+    const start = Date.now();
+    PassportReader.provePassport(inputs, (err: any, res: any) => {
+      const end = Date.now();
+      setGeneratingProof(false);
+      if (err) {
+        console.error(err);
+        setError('err: ' + err.toString());
+        return;
+      }
+      console.log('res: ' + res);
+      console.log('time: ' + (end - start));
     });
   };
 
@@ -171,6 +231,24 @@ function App(): JSX.Element {
             </Text>
           </TouchableOpacity>
         )}
+        {passportData && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#ccc',
+              padding: 20,
+              borderRadius: 10,
+            }}
+            onPress={onProve}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: 'black',
+              }}>
+              Prove
+            </Text>
+          </TouchableOpacity>
+        )}
         {scanning && (
           <TouchableOpacity
             style={{
@@ -190,15 +268,15 @@ function App(): JSX.Element {
           </TouchableOpacity>
         )}
         {error && <Text>{error}</Text>}
-        {photo && photo.base64 && (
+        {passportData && passportData.photo.base64 && (
           <>
             <Image
               source={{
-                uri: photo.base64,
+                uri: passportData.photo.base64,
               }}
               style={{
-                width: photo.width,
-                height: photo.height,
+                width: passportData.photo.width,
+                height: passportData.photo.height,
               }}
             />
             <Text
@@ -211,6 +289,7 @@ function App(): JSX.Element {
           </>
         )}
         {scanning && <Text>Scanning...</Text>}
+        {generatingProof && <Text>Proving...</Text>}
       </View>
     </SafeAreaView>
   );

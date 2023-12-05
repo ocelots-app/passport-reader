@@ -38,7 +38,29 @@ dependencies {
     implementation 'edu.ucar:jj2000:5.2'
     implementation 'com.github.mhshams:jnbis:1.1.0'
     implementation 'com.facebook.react:react-native:+'
+    implementation 'com.google.code.gson:gson:2.8.9'
+}
+
+apply plugin: 'org.mozilla.rust-android-gradle.rust-android'
+
+cargo {
+    module  = "../../../ark-circom-passport" 
+    libname = "ark_circom_passport" 
+    targets =  ["arm64", "x86", "arm", "x86_64", "darwin-aarch64"]
+    targetIncludes = ["libark_circom_passport.so"]
+    apiLevel = 29
+    profile = 'release'
 }
 
 
+tasks.whenTaskAdded { task ->
+    if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
+        task.dependsOn 'cargoBuild'
+    }
+}
 
+// Fix the UnsatisfiedLinkError (c.f. https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1777952460)
+tasks.matching { it.name.matches(/merge.*JniLibFolders/) }.configureEach {
+    it.inputs.dir(new File(buildDir, "rustJniLibs/android"))
+    it.dependsOn("cargoBuild")
+}
