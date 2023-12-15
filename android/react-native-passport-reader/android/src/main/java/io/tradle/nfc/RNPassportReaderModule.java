@@ -355,9 +355,9 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         lds.add(PassportService.EF_DG2, dg2In, dg2In.getLength());
         dg2File = lds.getDG2File();
 
-        CardFileInputStream dg14In = service.getInputStream(PassportService.EF_DG14);
+        /*CardFileInputStream dg14In = service.getInputStream(PassportService.EF_DG14);
         lds.add(PassportService.EF_DG14, dg14In, dg14In.getLength());
-        dg14File = lds.getDG14File();
+        dg14File = lds.getDG14File();*/
 
         List<FaceImageInfo> allFaceImageInfos = new ArrayList<>();
         List<FaceInfo> faceInfos = dg2File.getFaceInfos();
@@ -412,6 +412,8 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         String signatureAlgorithm = docSigningCertificate.getSigAlgName();
         passport.putString("signatureAlgorithm", signatureAlgorithm);
         passport.putString("tbsCertificate", gson.toJson(docSigningCertificate.getTBSCertificate()));
+        passport.putString("dscSignature", gson.toJson(docSigningCertificate.getSignature()));
+        passport.putString("dscSignatureAlgorithm", docSigningCertificate.getSigAlgName());
 
         PublicKey publicKey = docSigningCertificate.getPublicKey();
         if(publicKey instanceof RSAPublicKey) { 
@@ -484,7 +486,10 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         List<String> dataHashes,
         List<String> eContentBytes,
         List<String> signature,
-        List<String> pubkey
+        List<String> pubkey,
+        List<String> tbsCertificate,
+        List<String> cscaPubkey,
+        List<String> dscSignature
     );
 
     List<String> convertArrayListToStringList(ArrayList<Object> arrayList) {
@@ -504,8 +509,11 @@ public class RNPassportReaderModule extends ReactContextBaseJavaModule implement
         var e_content_bytes = inputs.getArray("eContentBytes") != null ? convertArrayListToStringList(inputs.getArray("eContentBytes").toArrayList()) : new ArrayList<String>();
         var signature = inputs.getArray("signature") != null ? convertArrayListToStringList(inputs.getArray("signature").toArrayList()) : new ArrayList<String>();
         var pubkey = inputs.getArray("pubkey") != null ? convertArrayListToStringList(inputs.getArray("pubkey").toArrayList()) : new ArrayList<String>();
+        var tbs_certificate = inputs.getArray("tbsCertificate") != null ? convertArrayListToStringList(inputs.getArray("tbsCertificate").toArrayList()) : new ArrayList<String>();
+        var dsc_signature = inputs.getArray("dscSignature") != null ? convertArrayListToStringList(inputs.getArray("dscSignature").toArrayList()) : new ArrayList<String>();
+        var csca_pubkey = inputs.getArray("cscaPubkey") != null ? convertArrayListToStringList(inputs.getArray("cscaPubkey").toArrayList()) : new ArrayList<String>();
         
-        var resultFromProof = provePassport(mrz, data_hashes, e_content_bytes, signature, pubkey);
+        var resultFromProof = provePassport(mrz, data_hashes, e_content_bytes, signature, pubkey, tbs_certificate, csca_pubkey, dsc_signature);
 
         Log.d(TAG, "resultFromProof: " + resultFromProof.toString());
 

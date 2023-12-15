@@ -1,6 +1,8 @@
 export type PassportData = {
   signatureAlgorithm: string;
   tbsCertificate: string;
+  dscSignature: number[];
+  dscSignatureAlgorithm: string;
   photo: {
     base64: string;
     width: number;

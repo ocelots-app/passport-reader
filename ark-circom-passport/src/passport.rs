@@ -79,6 +79,9 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
     e_content_bytes: JObject,
     signature: JObject,
     pubkey: JObject,
+    tbs_certificate: JObject,
+    csca_pubkey: JObject,
+    dsc_signature: JObject,
 ) -> jstring {
     
     log::warn!("formatting inputsaaaa...");
@@ -88,10 +91,14 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
         e_content_bytes: JObject,
         signature: JObject,
         pubkey: JObject,
+        tbs_certificate: JObject,
+        csca_pubkey: JObject,
+        dsc_signature: JObject,
         env: JNIEnv
     ) -> Result<jstring, Box<dyn std::error::Error>> {
         android_logger::init_once(Config::default().with_min_level(Level::Trace));
 
+        // Passport circom circuit
         log::warn!("formatting inputs...");
         log::warn!("mrz_veccccccc");
         
@@ -107,70 +114,135 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
         log::warn!("signature_vec {:?}", signature_vec);
         log::warn!("pubkey_vec {:?}", pubkey_vec);
         
-        log::warn!("loading circuit...");
-        const MAIN_WASM: &'static [u8] = include_bytes!("../passport/passport.wasm");
-        const MAIN_R1CS: &'static [u8] = include_bytes!("../passport/passport.r1cs");
+        log::warn!("loading passport circuit...");
+        const PASSPORT_WASM: &'static [u8] = include_bytes!("../passport/passport.wasm");
+        const PASSPORT_R1CS: &'static [u8] = include_bytes!("../passport/passport.r1cs");
         
         /*let cfg = CircomConfig::<Bn254>::new(
             "../passport/passport.wasm",
             "../passport/passport.r1cs",
         )?;*/
-        let cfg = CircomConfig::<Bn254>::from_bytes(MAIN_WASM, MAIN_R1CS)?;
+        let passport_cfg = CircomConfig::<Bn254>::from_bytes(PASSPORT_WASM, PASSPORT_R1CS)?;
         log::warn!("circuit loaded");
 
-        let mut builder = CircomBuilder::new(cfg);
+        let mut passport_builder = CircomBuilder::new(passport_cfg);
 
         mrz_vec.iter()
             .filter_map(|s| s.parse::<u128>().ok())
-            .for_each(|n| builder.push_input("mrz", n));
+            .for_each(|n| passport_builder.push_input("mrz", n));
         data_hashes_vec.iter()
             .filter_map(|s| s.parse::<u128>().ok())
-            .for_each(|n| builder.push_input("dataHashes", n));
+            .for_each(|n| passport_builder.push_input("dataHashes", n));
         e_content_bytes_vec.iter()
             .filter_map(|s| s.parse::<u128>().ok())
-            .for_each(|n| builder.push_input("eContentBytes", n));
+            .for_each(|n| passport_builder.push_input("eContentBytes", n));
         signature_vec.iter()
             .filter_map(|s| s.parse::<u128>().ok())
-            .for_each(|n| builder.push_input("signature", n));
+            .for_each(|n| passport_builder.push_input("signature", n));
         pubkey_vec.iter()
             .filter_map(|s| s.parse::<u128>().ok())
-            .for_each(|n| builder.push_input("pubkey", n));
+            .for_each(|n| passport_builder.push_input("pubkey", n));
 
         // create an empty instance for setting it up
-        let circom = builder.setup();
+        let circom_passport = passport_builder.setup();
         
         let mut rng = thread_rng();
-        let params = GrothBn::generate_random_parameters_with_reduction(circom, &mut rng)?;
+        let params_passport = GrothBn::generate_random_parameters_with_reduction(circom_passport, &mut rng)?;
         
-        let circom = builder.build()?;
+        let circom_passport = passport_builder.build()?;
         println!("circuit built");
         
-        let inputs = circom.get_public_inputs().unwrap();
+        let inputs_passport = circom_passport.get_public_inputs().unwrap();
         
         let start1 = Instant::now();
         
-        let proof = GrothBn::prove(&params, circom, &mut rng)?;
+        let proof_passport = GrothBn::prove(&params_passport, circom_passport, &mut rng)?;
         
-        let proof_str = proof_to_proof_str(&proof);
+        let proof_passport_str = proof_to_proof_str(&proof_passport);
 
-        let serialized_proof = serde_json::to_string(&proof_str).unwrap();
+        let passport_serialized_proof = serde_json::to_string(&proof_passport_str).unwrap();
 
         let duration1 = start1.elapsed();
         println!("proof generated. Took: {:?}", duration1);
         
         let start2 = Instant::now();
 
-        let pvk = GrothBn::process_vk(&params.vk).unwrap();
+        let pvk = GrothBn::process_vk(&params_passport.vk).unwrap();
         
-        let verified = GrothBn::verify_with_processed_vk(&pvk, &inputs, &proof)?;
+        let verified = GrothBn::verify_with_processed_vk(&pvk, &inputs_passport, &proof_passport)?;
         let duration2 = start2.elapsed();
         println!("proof verified. Took: {:?}", duration2);
 
         assert!(verified);
 
+        // DSC verifier circuit
+
+        let tbs_certificate_vec: Vec<String> = java_arraylist_to_rust_vec(&env, tbs_certificate)?;
+        let csca_pubkey_vec: Vec<String> = java_arraylist_to_rust_vec(&env, csca_pubkey)?;
+        let dsc_signature_vec: Vec<String> = java_arraylist_to_rust_vec(&env, dsc_signature)?;
+
+        log::warn!("tbs_certificate {:?}", tbs_certificate_vec);
+        log::warn!("csca_pubkey {:?}", csca_pubkey_vec);
+        log::warn!("dsc_signature {:?}", dsc_signature_vec);
+
+        log::warn!("loading dsc verifier circuit...");
+        const DSC_VERIFIER_WASM: &'static [u8] = include_bytes!("../passport/dscVerifier.wasm");
+        const DSC_VERIFIER_R1CS: &'static [u8] = include_bytes!("../passport/dscVerifier.r1cs");
+
+        let dsc_verifier_cfg = CircomConfig::<Bn254>::from_bytes(DSC_VERIFIER_WASM, DSC_VERIFIER_R1CS)?;
+        log::warn!("circuit loaded");
+
+        let mut dsc_verifier_builder = CircomBuilder::new(dsc_verifier_cfg);
+
+        tbs_certificate_vec.iter()
+        .filter_map(|s| s.parse::<u128>().ok())
+        .for_each(|n| dsc_verifier_builder.push_input("tbsCertificate", n));
+        csca_pubkey_vec.iter()
+            .filter_map(|s| s.parse::<u128>().ok())
+            .for_each(|n| dsc_verifier_builder.push_input("pubkey", n));
+        dsc_signature_vec.iter()
+            .filter_map(|s| s.parse::<u128>().ok())
+            .for_each(|n| dsc_verifier_builder.push_input("signature", n));
+
+        // create an empty instance for setting it up
+        let circom_dsc_verifier = dsc_verifier_builder.setup();
+
+        let mut rng = thread_rng();
+        let params_dsc_verifier = GrothBn::generate_random_parameters_with_reduction(circom_dsc_verifier, &mut rng)?;
+        
+        let circom_dsc_verifier = dsc_verifier_builder.build()?;
+        println!("circuit built");
+        
+        let inputs_dsc_verifier = circom_dsc_verifier.get_public_inputs().unwrap();
+        
+        let start1 = Instant::now();
+        
+        let proof_dsc_verifier = GrothBn::prove(&params_dsc_verifier, circom_dsc_verifier, &mut rng)?;
+        
+        let proof_dsc_verifier_str = proof_to_proof_str(&proof_dsc_verifier);
+
+        let dsc_verifier_serialized_proof = serde_json::to_string(&proof_dsc_verifier_str).unwrap();
+
+        let duration1_dsc_verifier = start1.elapsed();
+        println!("proof generated. Took: {:?}", duration1_dsc_verifier);
+        
+        let start2 = Instant::now();
+
+        let pvk = GrothBn::process_vk(&params_dsc_verifier.vk).unwrap();
+        
+        let verified = GrothBn::verify_with_processed_vk(&pvk, &inputs_dsc_verifier, &proof_dsc_verifier)?;
+        let duration2_dsc_verifier: std::time::Duration = start2.elapsed();
+        println!("proof verified. Took: {:?}", duration2_dsc_verifier);
+
+        assert!(verified);
+
+        // Format response
+
         let combined = json!({
-            "duration": duration1.as_millis(),
-            "serialized_proof": serialized_proof
+            "passport_duration": duration1.as_millis(),
+            "passport_serialized_proof": passport_serialized_proof,
+            "dsc_verifier_duration": duration1_dsc_verifier.as_millis(),
+            "dsc_verifier_serialized_proof": dsc_verifier_serialized_proof,
         });
         
         let combined_str = combined.to_string();
@@ -185,6 +257,9 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
         e_content_bytes,
         signature,
         pubkey,
+        tbs_certificate,
+        csca_pubkey,
+        dsc_signature,
         env
     ) {
         Ok(output) => output,

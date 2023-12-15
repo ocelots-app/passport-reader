@@ -255,3 +255,10 @@ export function hexToSignedBytes(hexString: string) {
 export function toUnsignedByte(signedByte: number) {
   return signedByte < 0 ? signedByte + 256 : signedByte;
 }
+
+export function bytesToHex(bytes: number[], signed = false) {
+  if (signed) {
+    bytes = bytes.map(toUnsignedByte);
+  }
+  return bytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+}

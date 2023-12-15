@@ -1,6 +1,6 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-catch-shadow */
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   Button,
   Image,
@@ -17,6 +17,11 @@ import {
 } from 'react-native';
 // @ts-ignore
 import {DEFAULT_PNUMBER, DEFAULT_DOB, DEFAULT_DOE} from '@env';
+import {
+  Camera,
+  useCameraDevice,
+  useCameraPermission,
+} from 'react-native-vision-camera';
 
 import {
   scanPassport,
@@ -27,6 +32,7 @@ import PassportReader from './android/react-native-passport-reader';
 import {PassportData} from './types';
 import {
   bytesToBigDecimal,
+  bytesToHex,
   dataHashesObjToArray,
   formatAndConcatenateDataHashes,
   formatMrz,
@@ -91,6 +97,15 @@ function App(): JSX.Element {
   const [passportData, setPassportData] = useState<PassportData>();
   const [generatingProof, setGeneratingProof] = useState(false);
   const [proof, setProof] = useState<string>();
+  const device = useCameraDevice('back');
+  const camera = useRef<Camera>();
+  const {hasPermission, requestPermission} = useCameraPermission();
+
+  /*useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, []);*/
 
   const onReadPassport = async () => {
     setScanning(true);
@@ -104,6 +119,8 @@ function App(): JSX.Element {
       });
       const formattedResult: PassportData = {
         signatureAlgorithm: res.signatureAlgorithm,
+        dscSignature: JSON.parse(res.dscSignature),
+        dscSignatureAlgorithm: res.dscSignatureAlgorithm,
         publicKey: {
           modulus: res.modulus,
           exponent: res.exponent,
@@ -116,6 +133,7 @@ function App(): JSX.Element {
         photo: res.photo,
       };
       console.log(formattedResult);
+      console.log(bytesToHex(formattedResult.dscSignature, true));
       setPassportData(formattedResult);
     } catch (error: any) {
       setError(JSON.stringify(error));
@@ -175,122 +193,171 @@ function App(): JSX.Element {
     });
   };
 
+  /*const onTakePhoto = async () => {
+    if (!camera.current) {
+      return;
+    }
+    const photo = await camera.current.takePhoto({
+      qualityPrioritization: 'quality',
+    });
+    console.log(photo);
+  };*/
+
   return (
     <SafeAreaView style={{}}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      <View
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         style={{
           height: '100%',
-          width: '100%',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 20,
         }}>
-        <TextInput
-          style={styles.textInput}
-          placeholderTextColor="black"
-          placeholder="Document Number"
-          value={passportMRZ.documentNumber}
-          onChangeText={text => {
-            setPassportMRZ(prev => ({...prev, documentNumber: text}));
-          }}
-        />
-        <TextInput
-          style={styles.textInput}
-          placeholderTextColor="black"
-          placeholder="Date of Birth (yyMMdd)"
-          value={passportMRZ.dateOfBirth}
-          onChangeText={text => {
-            setPassportMRZ(prev => ({...prev, dateOfBirth: text}));
-          }}
-        />
-        <TextInput
-          style={styles.textInput}
-          placeholderTextColor="black"
-          placeholder="Date of Expiry (yyMMdd)"
-          value={passportMRZ.dateOfExpiry}
-          onChangeText={text => {
-            setPassportMRZ(prev => ({...prev, dateOfExpiry: text}));
-          }}
-        />
-        {!scanning && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#ccc',
-              padding: 20,
-              borderRadius: 10,
+        <View
+          style={{
+            width: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 20,
+            paddingVertical: 50,
+            paddingHorizontal: 20,
+          }}>
+          <TextInput
+            style={styles.textInput}
+            placeholderTextColor="black"
+            placeholder="Document Number"
+            value={passportMRZ.documentNumber}
+            onChangeText={text => {
+              setPassportMRZ(prev => ({...prev, documentNumber: text}));
             }}
-            onPress={onReadPassport}>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: 'black',
-              }}>
-              Read passport
-            </Text>
-          </TouchableOpacity>
-        )}
-        {passportData && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#ccc',
-              padding: 20,
-              borderRadius: 10,
+          />
+          <TextInput
+            style={styles.textInput}
+            placeholderTextColor="black"
+            placeholder="Date of Birth (yyMMdd)"
+            value={passportMRZ.dateOfBirth}
+            onChangeText={text => {
+              setPassportMRZ(prev => ({...prev, dateOfBirth: text}));
             }}
-            onPress={onProve}>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: 'black',
-              }}>
-              Prove
-            </Text>
-          </TouchableOpacity>
-        )}
-        {scanning && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#ccc',
-              padding: 20,
-              borderRadius: 10,
+          />
+          <TextInput
+            style={styles.textInput}
+            placeholderTextColor="black"
+            placeholder="Date of Expiry (yyMMdd)"
+            value={passportMRZ.dateOfExpiry}
+            onChangeText={text => {
+              setPassportMRZ(prev => ({...prev, dateOfExpiry: text}));
             }}
-            onPress={onCancelScan}>
-            <Text
+          />
+          {/*hasPermission && device && !scanning && (
+            <Camera
+              ref={camera as any}
               style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: 'black',
-              }}>
-              Stop scan
-            </Text>
-          </TouchableOpacity>
-        )}
-        {error && <Text>{error}</Text>}
-        {passportData && passportData.photo.base64 && (
-          <>
-            <Image
-              source={{
-                uri: passportData.photo.base64,
+                width: '100%',
+                height: 200,
               }}
-              style={{
-                width: passportData.photo.width,
-                height: passportData.photo.height,
-              }}
+              device={device}
+              isActive={true}
+              photo={true}
             />
-            <Text
+            )*/}
+          {/*!scanning && (
+            <TouchableOpacity
               style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-              }}>
-              Passport read with success!
-            </Text>
-          </>
-        )}
-        {scanning && <Text>Scanning...</Text>}
-        {generatingProof && <Text>Proving...</Text>}
-      </View>
+                backgroundColor: '#ccc',
+                padding: 20,
+                borderRadius: 10,
+              }}
+              onPress={onTakePhoto}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'black',
+                }}>
+                Take picture
+              </Text>
+            </TouchableOpacity>
+              )*/}
+          {!scanning && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#ccc',
+                padding: 20,
+                borderRadius: 10,
+              }}
+              onPress={onReadPassport}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'black',
+                }}>
+                Read passport
+              </Text>
+            </TouchableOpacity>
+          )}
+          {passportData && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#ccc',
+                padding: 20,
+                borderRadius: 10,
+              }}
+              onPress={onProve}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'black',
+                }}>
+                Prove
+              </Text>
+            </TouchableOpacity>
+          )}
+          {scanning && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#ccc',
+                padding: 20,
+                borderRadius: 10,
+              }}
+              onPress={onCancelScan}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'black',
+                }}>
+                Stop scan
+              </Text>
+            </TouchableOpacity>
+          )}
+          {error && <Text>{error}</Text>}
+          {passportData && passportData.photo.base64 && (
+            <>
+              <Image
+                source={{
+                  uri: passportData.photo.base64,
+                }}
+                style={{
+                  width: '80%',
+                  height: passportData.photo.height,
+                }}
+                resizeMode="contain"
+              />
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'white',
+                }}>
+                Passport read with success!
+              </Text>
+            </>
+          )}
+          {scanning && <Text>Scanning...</Text>}
+          {generatingProof && <Text>Proving...</Text>}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
