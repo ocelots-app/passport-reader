@@ -240,7 +240,7 @@ function App(): JSX.Element {
           isReading = false;
           setReadingMRZ(false);
         }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       setPassportMRZ({
         documentNumber: _documentNumber,
