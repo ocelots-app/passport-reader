@@ -177,7 +177,7 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
 
         // DSC verifier circuit
 
-        let tbs_certificate_vec: Vec<String> = java_arraylist_to_rust_vec(&env, tbs_certificate)?;
+       /* let tbs_certificate_vec: Vec<String> = java_arraylist_to_rust_vec(&env, tbs_certificate)?;
         let csca_pubkey_vec: Vec<String> = java_arraylist_to_rust_vec(&env, csca_pubkey)?;
         let dsc_signature_vec: Vec<String> = java_arraylist_to_rust_vec(&env, dsc_signature)?;
 
@@ -234,15 +234,15 @@ pub extern "C" fn Java_io_tradle_nfc_RNPassportReaderModule_provePassport(
         let duration2_dsc_verifier: std::time::Duration = start2.elapsed();
         println!("proof verified. Took: {:?}", duration2_dsc_verifier);
 
-        assert!(verified);
+        assert!(verified);*/
 
         // Format response
 
         let combined = json!({
             "passport_duration": duration1.as_millis(),
             "passport_serialized_proof": passport_serialized_proof,
-            "dsc_verifier_duration": duration1_dsc_verifier.as_millis(),
-            "dsc_verifier_serialized_proof": dsc_verifier_serialized_proof,
+            //"dsc_verifier_duration": duration1_dsc_verifier.as_millis(),
+            //"dsc_verifier_serialized_proof": dsc_verifier_serialized_proof,
         });
         
         let combined_str = combined.to_string();

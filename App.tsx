@@ -86,6 +86,8 @@ async function getDataFromPassport({
   }
 }
 
+let isReading = true;
+
 function App(): JSX.Element {
   const [passportMRZ, setPassportMRZ] = useState({
     documentNumber: '',
@@ -194,6 +196,14 @@ function App(): JSX.Element {
     });
   };
 
+  useEffect(() => {
+    if (readingMRZ) {
+      setTimeout(() => {
+        onReadingMRZ();
+      }, 1000);
+    }
+  }, [readingMRZ]);
+
   const onReadingMRZ = async () => {
     if (!camera.current) {
       return;
@@ -203,7 +213,7 @@ function App(): JSX.Element {
       let _documentNumber = '';
       let _dateOfBirth = '';
       let _dateOfExpiry = '';
-      let isReading = true;
+      isReading = true;
       setReadingMRZ(isReading);
       while (
         (!mrz || !_documentNumber || !_dateOfBirth || !_dateOfExpiry) &&
@@ -296,7 +306,7 @@ function App(): JSX.Element {
               setPassportMRZ(prev => ({...prev, dateOfExpiry: text}));
             }}
           />
-          {hasPermission && device && !scanning && (
+          {hasPermission && device && readingMRZ && !scanning && (
             <Camera
               ref={camera as any}
               style={{
@@ -315,7 +325,9 @@ function App(): JSX.Element {
                 padding: 20,
                 borderRadius: 10,
               }}
-              onPress={onReadingMRZ}>
+              onPress={() => {
+                setReadingMRZ(true);
+              }}>
               <Text
                 style={{
                   fontSize: 20,
@@ -334,6 +346,7 @@ function App(): JSX.Element {
                 borderRadius: 10,
               }}
               onPress={() => {
+                isReading = false;
                 setReadingMRZ(false);
               }}>
               <Text
