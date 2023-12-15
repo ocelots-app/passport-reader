@@ -2,7 +2,6 @@
 /* eslint-disable no-catch-shadow */
 import React, {useEffect, useRef, useState} from 'react';
 import {
-  Button,
   Image,
   Platform,
   SafeAreaView,
@@ -12,7 +11,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 // @ts-ignore
@@ -40,6 +38,8 @@ import {
   splitToWords,
   toUnsignedByte,
 } from './utils';
+import {recognizeImage} from './ocr';
+import {getMRZCountryCode, includesMRZCountryCode} from './utils/country-code';
 
 async function getDataFromPassport({
   documentNumber,
@@ -100,12 +100,13 @@ function App(): JSX.Element {
   const device = useCameraDevice('back');
   const camera = useRef<Camera>();
   const {hasPermission, requestPermission} = useCameraPermission();
+  const [readingMRZ, setReadingMRZ] = useState(false);
 
-  /*useEffect(() => {
+  useEffect(() => {
     if (!hasPermission) {
       requestPermission();
     }
-  }, []);*/
+  }, []);
 
   const onReadPassport = async () => {
     setScanning(true);
@@ -193,15 +194,63 @@ function App(): JSX.Element {
     });
   };
 
-  /*const onTakePhoto = async () => {
+  const onReadingMRZ = async () => {
     if (!camera.current) {
       return;
     }
-    const photo = await camera.current.takePhoto({
-      qualityPrioritization: 'quality',
-    });
-    console.log(photo);
-  };*/
+    try {
+      let mrz = '';
+      let _documentNumber = '';
+      let _dateOfBirth = '';
+      let _dateOfExpiry = '';
+      let isReading = true;
+      setReadingMRZ(isReading);
+      while (
+        (!mrz || !_documentNumber || !_dateOfBirth || !_dateOfExpiry) &&
+        isReading
+      ) {
+        const photo = await camera.current.takePhoto({
+          enableShutterSound: false,
+          qualityPrioritization: 'quality',
+        });
+        const {blocks} = await recognizeImage(`file://${photo.path}`);
+        for (const block of blocks) {
+          if (
+            (block.text.startsWith('P<') || block.text.startsWith('I<')) &&
+            block.text.includes('\n')
+          ) {
+            mrz = (block.text as string).replaceAll(' ', '');
+            const indexOfLineBreak = mrz.indexOf('\n');
+            _documentNumber = mrz.slice(
+              indexOfLineBreak,
+              indexOfLineBreak + 10,
+            );
+            _dateOfBirth = mrz.slice(
+              indexOfLineBreak + 14,
+              indexOfLineBreak + 20,
+            );
+            _dateOfExpiry = mrz.slice(
+              indexOfLineBreak + 22,
+              indexOfLineBreak + 28,
+            );
+            break;
+          }
+        }
+        if (mrz && _documentNumber && _dateOfBirth && _dateOfExpiry) {
+          isReading = false;
+          setReadingMRZ(false);
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      setPassportMRZ({
+        documentNumber: _documentNumber,
+        dateOfBirth: _dateOfBirth,
+        dateOfExpiry: _dateOfExpiry,
+      });
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   return (
     <SafeAreaView style={{}}>
@@ -247,36 +296,56 @@ function App(): JSX.Element {
               setPassportMRZ(prev => ({...prev, dateOfExpiry: text}));
             }}
           />
-          {/*hasPermission && device && !scanning && (
+          {hasPermission && device && !scanning && (
             <Camera
               ref={camera as any}
               style={{
                 width: '100%',
-                height: 200,
+                height: 100,
               }}
               device={device}
               isActive={true}
               photo={true}
             />
-            )*/}
-          {/*!scanning && (
+          )}
+          {!scanning && !readingMRZ && (
             <TouchableOpacity
               style={{
                 backgroundColor: '#ccc',
                 padding: 20,
                 borderRadius: 10,
               }}
-              onPress={onTakePhoto}>
+              onPress={onReadingMRZ}>
               <Text
                 style={{
                   fontSize: 20,
                   fontWeight: 'bold',
                   color: 'black',
                 }}>
-                Take picture
+                Scan MRZ
               </Text>
             </TouchableOpacity>
-              )*/}
+          )}
+          {!scanning && readingMRZ && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#ccc',
+                padding: 20,
+                borderRadius: 10,
+              }}
+              onPress={() => {
+                setReadingMRZ(false);
+              }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: 'black',
+                }}>
+                Cancel scan
+              </Text>
+            </TouchableOpacity>
+          )}
           {!scanning && (
             <TouchableOpacity
               style={{

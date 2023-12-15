@@ -14,6 +14,8 @@
 		3EC5F9E745E0AFC7AFFA2CD6 /* Pods_PassportReader_PassportReaderTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99D8145465F5701F052C2E70 /* Pods_PassportReader_PassportReaderTests.framework */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		B7D5051E445493E4F5A5358A /* Pods_PassportReader.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD65C1EED01F0462E429AC80 /* Pods_PassportReader.framework */; };
+		C234D91F2B2C4C02005A7791 /* RCTTextRecognitionModule.m in Sources */ = {isa = PBXBuildFile; fileRef = C234D91E2B2C4C02005A7791 /* RCTTextRecognitionModule.m */; };
+		C234D9202B2C4C02005A7791 /* RCTTextRecognitionModule.m in Sources */ = {isa = PBXBuildFile; fileRef = C234D91E2B2C4C02005A7791 /* RCTTextRecognitionModule.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +45,8 @@
 		89C6BE57DB24E9ADA2F236DE /* Pods-PassportReader-PassportReaderTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PassportReader-PassportReaderTests.release.xcconfig"; path = "Target Support Files/Pods-PassportReader-PassportReaderTests/Pods-PassportReader-PassportReaderTests.release.xcconfig"; sourceTree = "<group>"; };
 		99D8145465F5701F052C2E70 /* Pods_PassportReader_PassportReaderTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_PassportReader_PassportReaderTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C22E7D912B12118200585137 /* PassportReader.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = PassportReader.entitlements; path = PassportReader/PassportReader.entitlements; sourceTree = "<group>"; };
+		C234D91D2B2C4B88005A7791 /* RCTTextRecognitionModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTTextRecognitionModule.h; sourceTree = "<group>"; };
+		C234D91E2B2C4C02005A7791 /* RCTTextRecognitionModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTTextRecognitionModule.m; sourceTree = "<group>"; };
 		DD65C1EED01F0462E429AC80 /* Pods_PassportReader.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_PassportReader.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -94,6 +98,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB71A68108700A75B9A /* main.m */,
+				C234D91D2B2C4B88005A7791 /* RCTTextRecognitionModule.h */,
+				C234D91E2B2C4C02005A7791 /* RCTTextRecognitionModule.m */,
 			);
 			name = PassportReader;
 			sourceTree = "<group>";
@@ -162,6 +168,7 @@
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
 				C59DA0FBD6956966B86A3779 /* [CP] Embed Pods Frameworks */,
+				91A1D66D48E64108F7C4D3A9 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -184,6 +191,7 @@
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
+				9B2068C9E680FAEAECE8DCD0 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -283,6 +291,40 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PassportReader/Pods-PassportReader-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		91A1D66D48E64108F7C4D3A9 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-PassportReader-PassportReaderTests/Pods-PassportReader-PassportReaderTests-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-PassportReader-PassportReaderTests/Pods-PassportReader-PassportReaderTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PassportReader-PassportReaderTests/Pods-PassportReader-PassportReaderTests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		9B2068C9E680FAEAECE8DCD0 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-PassportReader/Pods-PassportReader-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-PassportReader/Pods-PassportReader-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PassportReader/Pods-PassportReader-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		A55EABD7B0C7F3A422A6CC61 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -370,6 +412,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C234D9202B2C4C02005A7791 /* RCTTextRecognitionModule.m in Sources */,
 				00E356F31AD99517003FC87E /* PassportReaderTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -379,6 +422,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
+				C234D91F2B2C4C02005A7791 /* RCTTextRecognitionModule.m in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

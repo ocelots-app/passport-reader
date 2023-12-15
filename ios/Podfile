@@ -51,7 +51,8 @@ target 'PassportReader' do
   )
 
   use_frameworks!
-  pod 'NFCPassportReader', git:'https://github.com/AndyQ/NFCPassportReader.git'  
+  pod 'NFCPassportReader', git:'https://github.com/AndyQ/NFCPassportReader.git' 
+  pod 'GoogleMLKit/TextRecognition', '3.2.0' 
 
   target 'PassportReaderTests' do
     inherit! :complete
